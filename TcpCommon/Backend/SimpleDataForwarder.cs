@@ -1,11 +1,12 @@
 ﻿using System.Net.Sockets;
 using Serilog;
+using TcpCommon.Wrappers;
 
 namespace TcpCommon.Backend;
 
 public interface IDataForwarder
 {
-    Task ForwardAsync(NetworkStream source, NetworkStream destination, CancellationToken cancellationToken);
+    Task ForwardAsync(INetworkStream source, INetworkStream destination, CancellationToken cancellationToken);
 }
 
 public class SimpleDataForwarder : IDataForwarder
@@ -13,7 +14,7 @@ public class SimpleDataForwarder : IDataForwarder
     private readonly ILogger _log = Log.ForContext<SimpleDataForwarder>();
     private const int BufferSize = 8192;
 
-    public async Task ForwardAsync(NetworkStream source, NetworkStream destination, CancellationToken cancellationToken)
+    public async Task ForwardAsync(INetworkStream source, INetworkStream destination, CancellationToken cancellationToken)
     {
         byte[] buffer = new byte[BufferSize];
         try

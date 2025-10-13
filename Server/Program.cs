@@ -1,6 +1,7 @@
 ﻿using TcpCommon.Backend;
 using TcpCommon.Backend.ProtocolHandling;
 using TcpCommon.Infrastructure;
+using TcpCommon.Wrappers;
 
 Logging.Configure();
 
@@ -11,7 +12,7 @@ ServerConfiguration configuration1 = new()
     Port = 4001
 };
 
-IServer server1 = new Server(configuration1, new NewlineDelimitedProtocolHandler());
+IServer server1 = new Server(configuration1, new NewlineDelimitedProtocolHandler(), new TcpListenerWrapper(configuration1.GetEndpoint()));
 
 
 ServerConfiguration configuration2 = new()
@@ -21,14 +22,14 @@ ServerConfiguration configuration2 = new()
     Port = 4002
 };
 
-IServer server2 = new Server(configuration2, new NewlineDelimitedProtocolHandler());
+IServer server2 = new Server(configuration2, new NewlineDelimitedProtocolHandler(), new TcpListenerWrapper(configuration2.GetEndpoint()));
 
 // Start each server on its own background task
-Task.Run(() => server1.Start());
-Task.Run(() => server2.Start());
+_ = Task.Run(() => server1.StartAsync());
+_ = Task.Run(() => server2.StartAsync());
 
 Console.WriteLine("Both servers started. Press any key to stop...");
 Console.ReadKey();
 
-server1.Stop();
-server2.Stop();
+await server1.StopAsync();
+await server2.StopAsync();

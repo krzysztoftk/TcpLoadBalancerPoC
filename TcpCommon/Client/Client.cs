@@ -1,6 +1,7 @@
 ﻿using System.Net.Sockets;
 using Serilog;
 using TcpCommon.Backend.ProtocolHandling;
+using TcpCommon.Wrappers;
 
 namespace TcpCommon.Client;
 
@@ -9,25 +10,24 @@ public class Client : IClient
     private readonly ILogger _log = Log.ForContext<Client>();
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly ClientConfiguration _clientConfiguration;
-    private readonly TcpClient _client = new();
+    private readonly ITcpClient _tcpClient;
     private readonly IProtocolHandler _protocolHandler;
-    private NetworkStream _networkStream;
     private bool _isRunning;
 
 
-    public Client(ClientConfiguration clientConfiguration, IProtocolHandler protocolHandler)
+    public Client(ClientConfiguration clientConfiguration, IProtocolHandler protocolHandler, ITcpClient tcpClient)
     {
         _clientConfiguration = clientConfiguration;
         _protocolHandler = protocolHandler;
+        _tcpClient = tcpClient;
     }
 
     public async Task ConnectAsync()
     {
         try
         {
-            await _client.ConnectAsync(_clientConfiguration.GetBackendEndpoint());
+            await _tcpClient.ConnectAsync(_clientConfiguration.GetBackendEndpoint(), _cancellationTokenSource.Token);
             _log.Information($"{_clientConfiguration.Name} connected to: {_clientConfiguration.GetBackendEndpoint()}");
-            _networkStream = _client.GetStream();
             _isRunning = true;
             _ = Task.Run(ReceiveMessagesAsync);
         }
@@ -42,7 +42,7 @@ public class Client : IClient
 
     public async Task SendMessageAsync(string message, CancellationToken cancellationToken = default)
     {
-        await _protocolHandler.HandleSendAsync(message, _networkStream, cancellationToken);
+        await _protocolHandler.HandleSendAsync(message, _tcpClient.GetStream(), cancellationToken);
     }
 
     public void Stop()
@@ -57,7 +57,7 @@ public class Client : IClient
         {
             while (_isRunning)
             {
-                await _protocolHandler.HandleReceiveAsync(_networkStream, _cancellationTokenSource.Token);
+                await _protocolHandler.HandleReceiveAsync(_tcpClient.GetStream(), _cancellationTokenSource.Token);
             }
         }
         finally

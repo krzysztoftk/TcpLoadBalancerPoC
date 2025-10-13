@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using TcpCommon.Wrappers;
 
 namespace TcpCommon.Backend.Balancing;
 
@@ -10,7 +11,7 @@ public class LoadBalancer : ILoadBalancer
 {
     private readonly ILogger _log = Log.ForContext<LoadBalancer>();
     private readonly ServerConfiguration _configuration;
-    private readonly TcpListener _listener;
+    private readonly ITcpListener _tcpListener;
     private readonly IBalancingStrategy _balancingStrategy;
     private readonly IHealthChecker _healthChecker;
     private readonly IDataForwarder _dataForwarder;
@@ -22,12 +23,13 @@ public class LoadBalancer : ILoadBalancer
     public LoadBalancer(
         IBalancingStrategy balancingStrategy,
         ServerConfiguration configuration,
+        ITcpListener tcpTcpListener,
         IHealthChecker? healthChecker = null,
         IDataForwarder? dataForwarder = null)
     {
         _balancingStrategy = balancingStrategy;
         _configuration = configuration;
-        _listener = new(configuration.GetEndpoint());
+        _tcpListener = tcpTcpListener;
         _healthChecker = healthChecker ?? new HealthChecker();
         _dataForwarder = dataForwarder ?? new SimpleDataForwarder();
     }
@@ -49,7 +51,7 @@ public class LoadBalancer : ILoadBalancer
 
             await _healthChecker.StartAsync(_cancellationTokenSource.Token);
 
-            _listener.Start();
+            _tcpListener.Start();
             _log.Information("LoadBalancer listening on: {Endpoint}", _configuration.GetEndpoint());
 
             _acceptClientsTask = AcceptClientsAsync(_cancellationTokenSource.Token);
@@ -78,7 +80,7 @@ public class LoadBalancer : ILoadBalancer
 
         try
         {
-            _listener.Stop();
+            _tcpListener.Stop();
         }
         catch (Exception ex)
         {
@@ -107,7 +109,7 @@ public class LoadBalancer : ILoadBalancer
         {
             while (_isRunning && cancellationToken.IsCancellationRequested is false)
             {
-                TcpClient tcpClient = await _listener.AcceptTcpClientAsync(cancellationToken);
+                ITcpClient tcpClient = await _tcpListener.AcceptTcpClientAsync(cancellationToken);
                 _log.Information("Client connected: {RemoteEndpoint}", tcpClient.Client.RemoteEndPoint);
 
                 _ = HandleClientAsync(tcpClient, cancellationToken);
@@ -127,17 +129,17 @@ public class LoadBalancer : ILoadBalancer
         }
     }
 
-    private async Task HandleClientAsync(TcpClient tcpClient, CancellationToken cancellationToken)
+    private async Task HandleClientAsync(ITcpClient tcpClient, CancellationToken cancellationToken)
     {
-        TcpClient? backendClient = null;
+        ITcpClient? backendClient = null;
 
         try
         {
-            NetworkStream clientStream = tcpClient.GetStream();
+            INetworkStream clientStream = tcpClient.GetStream();
 
             IPEndPoint? backendEndpoint = _balancingStrategy.GetNext(_endpoints);
 
-            if (backendEndpoint == null)
+            if (backendEndpoint is null)
             {
                 _log.Warning("No healthy backends available");
                 byte[] errorMessage = Encoding.UTF8.GetBytes("Service Unavailable\n");
@@ -146,11 +148,11 @@ public class LoadBalancer : ILoadBalancer
                 return;
             }
 
-            backendClient = new();
+            backendClient = new TcpClientWrapper(new TcpClient());
 
             try
             {
-                await backendClient.ConnectAsync(backendEndpoint.Address, backendEndpoint.Port, cancellationToken);
+                await backendClient.ConnectAsync(backendEndpoint, cancellationToken);
                 _log.Debug("Connected to backend: {Endpoint}", backendEndpoint);
             }
             catch (Exception ex)
@@ -167,11 +169,11 @@ public class LoadBalancer : ILoadBalancer
                     return;
                 }
 
-                backendClient = new();
-                await backendClient.ConnectAsync(backendEndpoint.Address, backendEndpoint.Port, cancellationToken);
+                backendClient = new TcpClientWrapper(new TcpClient());
+                await backendClient.ConnectAsync(backendEndpoint, cancellationToken);
             }
 
-            NetworkStream backendStream = backendClient.GetStream();
+            INetworkStream backendStream = backendClient.GetStream();
 
             using CancellationTokenSource cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             Task forwardClientToBackend = _dataForwarder.ForwardAsync(clientStream, backendStream, cancellationTokenSource.Token);

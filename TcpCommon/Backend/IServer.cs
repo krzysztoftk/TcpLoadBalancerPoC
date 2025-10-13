@@ -2,7 +2,7 @@
 
 public interface IServer
 {
-    void Start();
+    Task StartAsync();
 
-    void Stop();
+    Task StopAsync();
 }

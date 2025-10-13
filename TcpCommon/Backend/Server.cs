@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using Serilog;
-using System.Net.Sockets;
 using TcpCommon.Backend.ProtocolHandling;
+using TcpCommon.Wrappers;
 
 namespace TcpCommon.Backend;
 
@@ -9,20 +9,21 @@ public class Server : IServer
 {
     private readonly ILogger _log = Log.ForContext<Server>();
     private readonly ServerConfiguration _serverConfiguration;
-    private readonly TcpListener _tcpListener;
+    private readonly ITcpListener _tcpListener;
     private bool _isRunning;
     private readonly IProtocolHandler _protocolHandler;
 
     public Server(
         ServerConfiguration serverConfiguration, 
-        IProtocolHandler protocolHandler)
+        IProtocolHandler protocolHandler,
+        ITcpListener tcpListener)
     {
         _serverConfiguration = serverConfiguration;
-        _tcpListener = new(serverConfiguration.GetEndpoint());
+        _tcpListener = tcpListener;
         _protocolHandler = protocolHandler;
     }
 
-    public void Start()
+    public async Task StartAsync()
     {
         _tcpListener.Start();
         _isRunning = true;
@@ -32,7 +33,7 @@ public class Server : IServer
         {
             try
             {
-                TcpClient client = _tcpListener.AcceptTcpClient();
+                ITcpClient client = await _tcpListener.AcceptTcpClientAsync(default); //todo: use CancelationTokenSource
                 _log.Information($"Client connected: {client.Client.RemoteEndPoint}");
                 _ = Task.Run(() => HandleClient(client));
             }
@@ -43,15 +44,16 @@ public class Server : IServer
         }
     }
 
-    public void Stop()
+    public Task StopAsync()
     {
         _isRunning = false;
         _tcpListener.Stop();
+        return Task.CompletedTask; //todo
     }
 
-    private async Task HandleClient(TcpClient client)
+    private async Task HandleClient(ITcpClient client)
     {
-        NetworkStream clientStream = client.GetStream();
+        INetworkStream clientStream = client.GetStream();
         CancellationTokenSource cancellationTokenSource = new();
 
         try
@@ -78,7 +80,7 @@ public class Server : IServer
         }
     }
 
-    private async Task SendHeartbeatAsync(NetworkStream clientStream, EndPoint? remoteEndPoint, CancellationToken cancellationToken)
+    private async Task SendHeartbeatAsync(INetworkStream clientStream, EndPoint? remoteEndPoint, CancellationToken cancellationToken)
     {
         try
         {

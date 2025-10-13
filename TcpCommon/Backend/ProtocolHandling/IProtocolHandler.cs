@@ -1,10 +1,11 @@
 ﻿using System.Net.Sockets;
+using TcpCommon.Wrappers;
 
 namespace TcpCommon.Backend.ProtocolHandling;
 
 public interface IProtocolHandler
 {
-    Task HandleReceiveAsync(NetworkStream sourceStream, CancellationToken cancellationToken);
+    Task HandleReceiveAsync(INetworkStream sourceStream, CancellationToken cancellationToken);
 
-    Task HandleSendAsync(string messageToSend, NetworkStream destinationStream, CancellationToken cancellationToken);
+    Task HandleSendAsync(string messageToSend, INetworkStream destinationStream, CancellationToken cancellationToken);
 }

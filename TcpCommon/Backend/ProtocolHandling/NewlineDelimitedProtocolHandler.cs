@@ -1,6 +1,7 @@
 ﻿using System.Net.Sockets;
 using System.Text;
 using Serilog;
+using TcpCommon.Wrappers;
 
 namespace TcpCommon.Backend.ProtocolHandling;
 
@@ -9,7 +10,7 @@ public class NewlineDelimitedProtocolHandler : IProtocolHandler
     private readonly ILogger _log = Log.ForContext<NewlineDelimitedProtocolHandler>();
     private const int BufferSize = 8192;
 
-    public async Task HandleReceiveAsync(NetworkStream sourceStream, CancellationToken cancellationToken)
+    public async Task HandleReceiveAsync(INetworkStream sourceStream, CancellationToken cancellationToken)
     {
         byte[] buffer = new byte[BufferSize];
         MemoryStream messageBuffer = new();
@@ -54,7 +55,7 @@ public class NewlineDelimitedProtocolHandler : IProtocolHandler
         }
     }
 
-    public async Task HandleSendAsync(string messageToSend, NetworkStream destinationStream, CancellationToken cancellationToken)
+    public async Task HandleSendAsync(string messageToSend, INetworkStream destinationStream, CancellationToken cancellationToken)
     {
         try
         {

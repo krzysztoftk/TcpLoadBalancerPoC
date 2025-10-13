@@ -1,6 +1,7 @@
 ﻿using TcpCommon.Backend.ProtocolHandling;
 using TcpCommon.Client;
 using TcpCommon.Infrastructure;
+using TcpCommon.Wrappers;
 
 Logging.Configure();
 
@@ -15,7 +16,7 @@ ClientConfiguration clientConfiguration = new()
     BackendPort = 5000
 };
 
-Client client = new(clientConfiguration, new NewlineDelimitedProtocolHandler());
+Client client = new(clientConfiguration, new NewlineDelimitedProtocolHandler(), new TcpClientWrapper());
 
 Task.Run(() =>
 {
