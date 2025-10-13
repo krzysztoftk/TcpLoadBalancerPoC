@@ -1,6 +1,7 @@
 ﻿using System.Net.Sockets;
 using System.Text;
 using Serilog;
+using TcpCommon.Backend.ProtocolHandling;
 
 namespace TcpCommon.Client;
 
@@ -10,13 +11,15 @@ public class Client : IClient
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly ClientConfiguration _clientConfiguration;
     private readonly TcpClient _client = new();
-    private Stream _networkStream;
+    private readonly IProtocolHandler _protocolHandler;
+    private NetworkStream _networkStream;
     private bool _isRunning;
 
 
-    public Client(ClientConfiguration clientConfiguration)
+    public Client(ClientConfiguration clientConfiguration, IProtocolHandler protocolHandler)
     {
         _clientConfiguration = clientConfiguration;
+        _protocolHandler = protocolHandler;
     }
 
     public async Task ConnectAsync()
@@ -40,9 +43,7 @@ public class Client : IClient
 
     public async Task SendMessageAsync(string message, CancellationToken cancellationToken = default)
     {
-        byte[] buffer = Encoding.UTF8.GetBytes($"{_clientConfiguration.Name} message: {message}\n");
-        await _networkStream.WriteAsync(buffer, 0, buffer.Length, cancellationToken);
-        await _networkStream.FlushAsync(cancellationToken);
+        await _protocolHandler.HandleSendAsync(message, _networkStream, cancellationToken);
     }
 
     public void Stop()
