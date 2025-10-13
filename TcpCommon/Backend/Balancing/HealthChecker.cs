@@ -57,10 +57,10 @@ public class HealthChecker : IHealthChecker
 
     public async Task StopAsync()
     {
-        if (_cancellationTokenSource != null)
+        if (_cancellationTokenSource is not null)
         {
             await _cancellationTokenSource.CancelAsync();
-            if (_healthCheckTask != null)
+            if (_healthCheckTask is not null)
             {
                 try
                 {
@@ -105,11 +105,11 @@ public class HealthChecker : IHealthChecker
     {
         try
         {
-            using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(_healthCheckTimeoutMs);
+            using CancellationTokenSource cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cancellationTokenSource.CancelAfter(_healthCheckTimeoutMs);
 
             using TcpClient client = new();
-            await client.ConnectAsync(status.Endpoint.Address, status.Endpoint.Port, cts.Token);
+            await client.ConnectAsync(status.Endpoint.Address, status.Endpoint.Port, cancellationTokenSource.Token);
 
             status.IsHealthy = true;
             status.ConsecutiveFailures = 0;

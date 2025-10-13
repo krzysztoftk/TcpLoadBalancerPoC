@@ -105,7 +105,7 @@ public class LoadBalancer : ILoadBalancer
     {
         try
         {
-            while (_isRunning && !cancellationToken.IsCancellationRequested)
+            while (_isRunning && cancellationToken.IsCancellationRequested is false)
             {
                 TcpClient tcpClient = await _listener.AcceptTcpClientAsync(cancellationToken);
                 _log.Information("Client connected: {RemoteEndpoint}", tcpClient.Client.RemoteEndPoint);
@@ -157,7 +157,6 @@ public class LoadBalancer : ILoadBalancer
             {
                 _log.Warning(ex, "Failed to connect to backend {Endpoint}, trying next endpoint", backendEndpoint);
 
-                // Try next backend
                 backendEndpoint = _balancingStrategy.GetNext(_endpoints);
                 if (backendEndpoint == null)
                 {

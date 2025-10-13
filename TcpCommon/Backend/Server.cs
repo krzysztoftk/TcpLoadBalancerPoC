@@ -1,4 +1,5 @@
-﻿using Serilog;
+﻿using System.Net;
+using Serilog;
 using System.Net.Sockets;
 using System.Text;
 using TcpCommon.Backend.ProtocolHandling;
@@ -27,7 +28,7 @@ public class Server : IServer
         _tcpListener.Start();
         _isRunning = true;
 
-        _log.Information($"Server {_serverConfiguration.Name} started on {_tcpListener.LocalEndpoint}");
+        _log.Information("Server {name} started listening on {endpoint}", _serverConfiguration.Name, _tcpListener.LocalEndpoint);
         while (_isRunning)
         {
             try
@@ -38,7 +39,7 @@ public class Server : IServer
             }
             catch (Exception ex)
             {
-                _log.Error($"{_serverConfiguration.Name}: Error accepting client: {ex.Message}");
+                _log.Error("{Server name}: Error accepting client: {exception}", _serverConfiguration.Name, ex.Message);
             }
         }
     }
@@ -60,19 +61,7 @@ public class Server : IServer
             {
                 while (client.Connected && cancellationTokenSource.Token.IsCancellationRequested is false)
                 {
-                    try
-                    {
-                        string heartbeatMessage =
-                            $"[Heartbeat from {_serverConfiguration.Name}] {DateTime.UtcNow:HH:mm:ss}\n";
-                        byte[] messageBytes = Encoding.UTF8.GetBytes(heartbeatMessage);
-                        await clientStream.WriteAsync(messageBytes, 0, messageBytes.Length, cancellationTokenSource.Token);
-                        await clientStream.FlushAsync(cancellationTokenSource.Token);
-                        await Task.Delay(TimeSpan.FromSeconds(60), cancellationTokenSource.Token);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        _log.Information("Heartbeat loop cancelled for {Client}", client.Client.RemoteEndPoint);
-                    }
+                    await SendHeartbeatAsync(clientStream, client.Client.RemoteEndPoint,  cancellationTokenSource.Token);
                 }
             }, cancellationTokenSource.Token);
 
@@ -80,13 +69,30 @@ public class Server : IServer
         }
         catch (Exception ex)
         {
-            _log.Error($"{_serverConfiguration.Name}: Error handling client: {ex.Message}");
+            _log.Error("{Server name}: Error handling client: {exception}", _serverConfiguration.Name, ex.Message);
         }
         finally
         {
             await cancellationTokenSource.CancelAsync();
             client.Close();
-            _log.Information($"{_serverConfiguration.Name}: Client disconnected");
+            _log.Information("{Server name}: Client disconnected", _serverConfiguration.Name);
+        }
+    }
+
+    private async Task SendHeartbeatAsync(NetworkStream clientStream, EndPoint? remoteEndPoint, CancellationToken cancellationToken)
+    {
+        try
+        {
+            string heartbeatMessage =
+                $"[Heartbeat from {_serverConfiguration.Name}] {DateTime.UtcNow:HH:mm:ss}\n";
+            byte[] messageBytes = Encoding.UTF8.GetBytes(heartbeatMessage);
+            await clientStream.WriteAsync(messageBytes, 0, messageBytes.Length, cancellationToken);
+            await clientStream.FlushAsync(cancellationToken);
+            await Task.Delay(TimeSpan.FromSeconds(60), cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            _log.Information("Heartbeat loop cancelled for {client endpoint}", remoteEndPoint);
         }
     }
 }
