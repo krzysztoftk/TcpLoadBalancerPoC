@@ -1,8 +1,9 @@
 ﻿using Serilog;
+using Serilog.Core;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
+using TcpCommon.Backend.ProtocolHandling;
 using TcpCommon.Wrappers;
 
 namespace TcpCommon.Backend.Balancing;
@@ -16,6 +17,7 @@ public class LoadBalancer : ILoadBalancer
     private readonly IHealthChecker _healthChecker;
     private readonly IDataForwarder _dataForwarder;
     private readonly ConcurrentBag<EndpointHealthStatus> _endpoints = new();
+    private readonly IProtocolHandler _protocolHandler;
     private CancellationTokenSource? _cancellationTokenSource;
     private Task? _acceptClientsTask;
     private bool _isRunning;
@@ -73,7 +75,7 @@ public class LoadBalancer : ILoadBalancer
     {
         _isRunning = false;
 
-        if (_cancellationTokenSource != null)
+        if (_cancellationTokenSource is not null)
         {
             await _cancellationTokenSource.CancelAsync();
         }
@@ -87,7 +89,7 @@ public class LoadBalancer : ILoadBalancer
             _log.Warning(ex, "Error stopping listener");
         }
 
-        if (_acceptClientsTask != null)
+        if (_acceptClientsTask is not null)
         {
             try
             {
@@ -95,7 +97,7 @@ public class LoadBalancer : ILoadBalancer
             }
             catch (OperationCanceledException)
             {
-                // Expected
+                _log.Debug("Load balancer: Client acceptance loop stopped due to cancellation.");
             }
         }
 
@@ -142,9 +144,7 @@ public class LoadBalancer : ILoadBalancer
             if (backendEndpoint is null)
             {
                 _log.Warning("No healthy backends available");
-                byte[] errorMessage = Encoding.UTF8.GetBytes("Service Unavailable\n");
-                await clientStream.WriteAsync(errorMessage, 0, errorMessage.Length, cancellationToken);
-                await clientStream.FlushAsync(cancellationToken);
+                await _protocolHandler.HandleSendAsync("Service Unavailable", clientStream, cancellationToken);
                 return;
             }
 
@@ -163,9 +163,7 @@ public class LoadBalancer : ILoadBalancer
                 if (backendEndpoint == null)
                 {
                     _log.Warning("No more healthy backends available after failure");
-                    byte[] errorMessage = Encoding.UTF8.GetBytes("Service Unavailable\n");
-                    await clientStream.WriteAsync(errorMessage, 0, errorMessage.Length, cancellationToken);
-                    await clientStream.FlushAsync(cancellationToken);
+                    await _protocolHandler.HandleSendAsync("Service Unavailable", clientStream, cancellationToken);
                     return;
                 }
 

@@ -1,5 +1,4 @@
-﻿using System.Net.Sockets;
-using Serilog;
+﻿using Serilog;
 using TcpCommon.Backend.ProtocolHandling;
 using TcpCommon.Wrappers;
 

@@ -10,8 +10,9 @@ public class Server : IServer
     private readonly ILogger _log = Log.ForContext<Server>();
     private readonly ServerConfiguration _serverConfiguration;
     private readonly ITcpListener _tcpListener;
-    private bool _isRunning;
     private readonly IProtocolHandler _protocolHandler;
+    private bool _isRunning;
+
 
     public Server(
         ServerConfiguration serverConfiguration, 
