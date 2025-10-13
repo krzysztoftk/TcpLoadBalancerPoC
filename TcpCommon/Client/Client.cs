@@ -48,6 +48,7 @@ public class Client : IClient
     {
         _isRunning = false;
         _cancellationTokenSource.Cancel();
+        _cancellationTokenSource.Dispose();
     }
 
     private async Task ReceiveMessagesAsync()
