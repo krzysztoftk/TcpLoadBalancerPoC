@@ -31,7 +31,6 @@ await client.SendMessageAsync("Message F3");
 while (true)
 {
     await client.SendMessageAsync($"Message F + {Guid.NewGuid()}");
-    Task.Delay(1000);
 }
 
 

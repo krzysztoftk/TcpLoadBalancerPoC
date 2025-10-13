@@ -1,5 +1,4 @@
 ﻿using System.Net.Sockets;
-using System.Text;
 using Serilog;
 using TcpCommon.Backend.ProtocolHandling;
 
@@ -54,44 +53,16 @@ public class Client : IClient
 
     private async Task ReceiveMessagesAsync()
     {
-        const int bufferSize = 8192; 
-        byte[] buffer = new byte[bufferSize];
-        MemoryStream messageBuffer = new();
-
         try
         {
             while (_isRunning)
             {
-                int bytesRead = await _networkStream.ReadAsync(buffer, 0, bufferSize, _cancellationTokenSource.Token);
-                if (bytesRead == 0)
-                {
-                    break; // server closed connection
-                }
-
-                messageBuffer.Write(buffer, 0, bytesRead);
-
-                if (CheckForCompleteMessage(buffer, bytesRead))
-                {
-                    string received = Encoding.UTF8.GetString(messageBuffer.ToArray()).Trim();
-                    Console.WriteLine($"Server to {_clientConfiguration.Name}: {received}");
-                    messageBuffer.SetLength(0);
-                }
+                await _protocolHandler.HandleReceiveAsync(_networkStream, _cancellationTokenSource.Token);
             }
-        }
-        catch (OperationCanceledException)
-        {
-            _log.Information($"{_clientConfiguration.Name} receive operation cancelled.");
-        }
-        catch (IOException)
-        {
-            _log.Error($"{_clientConfiguration.Name} disconnected from server.");
         }
         finally
         {
             _isRunning = false;
-            await messageBuffer.DisposeAsync();
         }
     }
-
-    private bool CheckForCompleteMessage(byte[] buffer, int bytesRead) => buffer[bytesRead - 1] == '\n';
 }
