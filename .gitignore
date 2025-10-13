@@ -1,0 +1,16 @@
+.vs/
+Backend/bin/Debug/net8.0/Backend.exe
+Backend/bin/
+Backend/obj/
+Client2/bin/
+Client2/obj/
+LoadBalancerV2/bin/
+LoadBalancerV2/obj/
+Server/bin/
+Server/obj/
+TcpCommon.IntegrationTests/bin/
+TcpCommon.IntegrationTests/obj/
+TcpCommon.Tests/bin/
+TcpCommon/obj/
+TcpCommon.Tests/obj/
+TcpCommon/bin/
