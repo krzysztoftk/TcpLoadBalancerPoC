@@ -58,7 +58,7 @@ public class Server : IServer
         {
             _ = Task.Run(async () =>
             {
-                while (client.Connected && !cancellationTokenSource.Token.IsCancellationRequested is false)
+                while (client.Connected && cancellationTokenSource.Token.IsCancellationRequested is false)
                 {
                     try
                     {
