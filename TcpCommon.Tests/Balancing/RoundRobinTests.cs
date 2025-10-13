@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using TcpCommon.Backend.Balancing;
 
-namespace TcpCommon.Tests;
+namespace TcpCommon.Tests.Balancing;
 
 public class RoundRobinTests
 {
@@ -45,7 +45,7 @@ public class RoundRobinTests
 
         IPEndPoint? nextEndppoint = _roundRobinStrategy.GetNext(endpoints);
 
-        Assert.That(nextEndppoint.Port, Is.EqualTo(1000) );
+        Assert.That(nextEndppoint.Port, Is.EqualTo(1000));
 
         nextEndppoint = _roundRobinStrategy.GetNext(endpoints);
 

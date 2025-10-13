@@ -7,10 +7,10 @@ namespace TcpCommon.Client;
 public class Client : IClient
 {
     private readonly ILogger _log = Log.ForContext<Client>();
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly ClientConfiguration _clientConfiguration;
     private readonly ITcpClient _tcpClient;
     private readonly IProtocolHandler _protocolHandler;
+    private CancellationTokenSource _cancellationTokenSource;
     private bool _isRunning;
 
 
@@ -25,6 +25,7 @@ public class Client : IClient
     {
         try
         {
+            _cancellationTokenSource = new CancellationTokenSource();
             await _tcpClient.ConnectAsync(_clientConfiguration.GetBackendEndpoint(), _cancellationTokenSource.Token);
             _log.Information($"{_clientConfiguration.Name} connected to: {_clientConfiguration.GetBackendEndpoint()}");
             _isRunning = true;
