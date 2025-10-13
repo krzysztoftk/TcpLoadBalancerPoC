@@ -9,7 +9,7 @@ public class NewlineDelimitedProtocolHandler : IProtocolHandler
     private readonly ILogger _log = Log.ForContext<NewlineDelimitedProtocolHandler>();
     private const int BufferSize = 8192;
 
-    public async Task HandleAsync(NetworkStream source, NetworkStream destination, CancellationToken cancellationToken)
+    public async Task HandleReceiveAsync(NetworkStream sourceStream, CancellationToken cancellationToken)
     {
         byte[] buffer = new byte[BufferSize];
         MemoryStream messageBuffer = new();
@@ -17,27 +17,70 @@ public class NewlineDelimitedProtocolHandler : IProtocolHandler
         try
         {
             int bytesRead;
-            while ((bytesRead = await source.ReadAsync(buffer, 0, BufferSize, cancellationToken)) > 0)
+            while ((bytesRead = await sourceStream.ReadAsync(buffer, 0, BufferSize, cancellationToken)) > 0)
             {
                 messageBuffer.Write(buffer, 0, bytesRead);
 
-                if (CheckForCompleteMessage(buffer, bytesRead))
+                if (CheckForCompleteMessage(buffer, bytesRead) is false)
                 {
-                    string message = Encoding.UTF8.GetString(messageBuffer.ToArray()).Trim();
-                    _log.Information($"Received message: {message}");
-
-                    string response = $"ACK: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}\n";
-                    byte[] responseBytes = Encoding.UTF8.GetBytes(response);
-                    await destination.WriteAsync(responseBytes, 0, responseBytes.Length, cancellationToken);
-                    await destination.FlushAsync(cancellationToken);
-
-                    messageBuffer.SetLength(0);
+                    continue;
                 }
+
+                string message = Encoding.UTF8.GetString(messageBuffer.ToArray()).Trim();
+                _log.Information($"Received message: {message}");
+
+                messageBuffer.SetLength(0);
             }
+        }
+        catch (OperationCanceledException)
+        {
+            _log.Information("Receive operation cancelled");
+        }
+        catch (IOException ex)
+        {
+            _log.Warning(ex, "IO error during receive");
+        }
+        catch (ObjectDisposedException ex)
+        {
+            _log.Warning(ex, "Stream disposed during receive");
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, "Unexpected error during receive");
         }
         finally
         {
             await messageBuffer.DisposeAsync();
+        }
+    }
+
+    public async Task HandleSendAsync(string messageToSend, NetworkStream destinationStream, CancellationToken cancellationToken)
+    {
+        try
+        {
+            byte[] responseBytes = Encoding.UTF8.GetBytes(messageToSend + "\n");
+            await destinationStream.WriteAsync(responseBytes, 0, responseBytes.Length, cancellationToken);
+            await destinationStream.FlushAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            _log.Information("Send operation cancelled");
+        }
+        catch (IOException ex)
+        {
+            _log.Warning(ex, "IO error during send: {Message}", messageToSend);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            _log.Warning(ex, "Stream disposed during send");
+        }
+        catch (ArgumentException ex)
+        {
+            _log.Error(ex, "Invalid arguments during send");
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, "Unexpected error during send: {Message}", messageToSend);
         }
     }
 

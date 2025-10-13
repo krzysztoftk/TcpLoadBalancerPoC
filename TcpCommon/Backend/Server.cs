@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using Serilog;
 using System.Net.Sockets;
-using System.Text;
 using TcpCommon.Backend.ProtocolHandling;
 
 namespace TcpCommon.Backend;
@@ -27,8 +26,8 @@ public class Server : IServer
     {
         _tcpListener.Start();
         _isRunning = true;
+        _log.Information("Server {ServerName} started listening on {Endpoint}", _serverConfiguration.Name, _tcpListener.LocalEndpoint);
 
-        _log.Information("Server {name} started listening on {endpoint}", _serverConfiguration.Name, _tcpListener.LocalEndpoint);
         while (_isRunning)
         {
             try
@@ -39,7 +38,7 @@ public class Server : IServer
             }
             catch (Exception ex)
             {
-                _log.Error("{Server name}: Error accepting client: {exception}", _serverConfiguration.Name, ex.Message);
+                _log.Error("{ServerName}: Error accepting client: {ExceptionMessage}", _serverConfiguration.Name, ex.Message);
             }
         }
     }
@@ -65,17 +64,17 @@ public class Server : IServer
                 }
             }, cancellationTokenSource.Token);
 
-            await _protocolHandler.HandleAsync(clientStream, clientStream, cancellationTokenSource.Token);
+            await _protocolHandler.HandleReceiveAsync(clientStream, cancellationTokenSource.Token);
         }
         catch (Exception ex)
         {
-            _log.Error("{Server name}: Error handling client: {exception}", _serverConfiguration.Name, ex.Message);
+            _log.Error("{ServerName}: Error handling client: {ExceptionMessage}", _serverConfiguration.Name, ex.Message);
         }
         finally
         {
             await cancellationTokenSource.CancelAsync();
             client.Close();
-            _log.Information("{Server name}: Client disconnected", _serverConfiguration.Name);
+            _log.Information("{ServerName}: Client disconnected", _serverConfiguration.Name);
         }
     }
 
@@ -83,16 +82,14 @@ public class Server : IServer
     {
         try
         {
-            string heartbeatMessage =
-                $"[Heartbeat from {_serverConfiguration.Name}] {DateTime.UtcNow:HH:mm:ss}\n";
-            byte[] messageBytes = Encoding.UTF8.GetBytes(heartbeatMessage);
-            await clientStream.WriteAsync(messageBytes, 0, messageBytes.Length, cancellationToken);
-            await clientStream.FlushAsync(cancellationToken);
+            string heartbeatMessage = $"[Heartbeat from {_serverConfiguration.Name}] {DateTime.UtcNow:HH:mm:ss}";
+            await _protocolHandler.HandleSendAsync(heartbeatMessage, clientStream, cancellationToken);
             await Task.Delay(TimeSpan.FromSeconds(60), cancellationToken);
         }
         catch (OperationCanceledException)
         {
-            _log.Information("Heartbeat loop cancelled for {client endpoint}", remoteEndPoint);
+            _log.Information("{ServerName} heartbeat loop cancelled for {ClientEndpoint}", _serverConfiguration.Name, remoteEndPoint);
         }
+
     }
 }

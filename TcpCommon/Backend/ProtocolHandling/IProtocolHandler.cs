@@ -4,5 +4,7 @@ namespace TcpCommon.Backend.ProtocolHandling;
 
 public interface IProtocolHandler
 {
-    Task HandleAsync(NetworkStream source, NetworkStream destination, CancellationToken cancellationToken);
+    Task HandleReceiveAsync(NetworkStream sourceStream, CancellationToken cancellationToken);
+
+    Task HandleSendAsync(string messageToSend, NetworkStream destinationStream, CancellationToken cancellationToken);
 }
