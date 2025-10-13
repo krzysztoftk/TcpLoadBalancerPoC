@@ -10,7 +10,7 @@ public class Client : IClient
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly ClientConfiguration _clientConfiguration;
     private readonly TcpClient _client = new();
-    private NetworkStream _stream;
+    private Stream _networkStream;
     private bool _isRunning;
 
 
@@ -25,7 +25,7 @@ public class Client : IClient
         {
             await _client.ConnectAsync(_clientConfiguration.GetBackendEndpoint());
             _log.Information($"{_clientConfiguration.Name} connected to: {_clientConfiguration.GetBackendEndpoint()}");
-            _stream = _client.GetStream();
+            _networkStream = _client.GetStream();
             _isRunning = true;
             _ = Task.Run(ReceiveMessagesAsync);
         }
@@ -41,8 +41,8 @@ public class Client : IClient
     public async Task SendMessageAsync(string message, CancellationToken cancellationToken = default)
     {
         byte[] buffer = Encoding.UTF8.GetBytes($"{_clientConfiguration.Name} message: {message}\n");
-        await _stream.WriteAsync(buffer, 0, buffer.Length, cancellationToken);
-        await _stream.FlushAsync(cancellationToken);
+        await _networkStream.WriteAsync(buffer, 0, buffer.Length, cancellationToken);
+        await _networkStream.FlushAsync(cancellationToken);
     }
 
     public void Stop()
@@ -61,7 +61,7 @@ public class Client : IClient
         {
             while (_isRunning)
             {
-                int bytesRead = await _stream.ReadAsync(buffer, 0, bufferSize, _cancellationTokenSource.Token);
+                int bytesRead = await _networkStream.ReadAsync(buffer, 0, bufferSize, _cancellationTokenSource.Token);
                 if (bytesRead == 0)
                 {
                     break; // server closed connection
@@ -69,11 +69,10 @@ public class Client : IClient
 
                 messageBuffer.Write(buffer, 0, bytesRead);
 
-                // Check for complete message (ends with newline)
-                if (buffer[bytesRead - 1] == '\n')
+                if (CheckForCompleteMessage(buffer, bytesRead))
                 {
                     string received = Encoding.UTF8.GetString(messageBuffer.ToArray()).Trim();
-                    Console.WriteLine($"Server → {_clientConfiguration.Name}: {received}");
+                    Console.WriteLine($"Server to {_clientConfiguration.Name}: {received}");
                     messageBuffer.SetLength(0);
                 }
             }
@@ -92,4 +91,6 @@ public class Client : IClient
             await messageBuffer.DisposeAsync();
         }
     }
+
+    private bool CheckForCompleteMessage(byte[] buffer, int bytesRead) => buffer[bytesRead - 1] == '\n';
 }
