@@ -51,11 +51,10 @@ public class LoadBalancer : ILoadBalancer
             _cancellationTokenSource = new();
             _isRunning = true;
 
-            await _healthChecker.StartAsync(_cancellationTokenSource.Token);
-
             _tcpListener.Start();
+            await _healthChecker.StartAsync(_cancellationTokenSource.Token);
             _log.Information("LoadBalancer listening on: {Endpoint}", _configuration.GetEndpoint());
-
+                        await _healthChecker.StartAsync(_cancellationTokenSource.Token);
             _acceptClientsTask = AcceptClientsAsync(_cancellationTokenSource.Token);
             await _acceptClientsTask;
         }
@@ -73,6 +72,11 @@ public class LoadBalancer : ILoadBalancer
 
     public async Task StopAsync()
     {
+        if (_isRunning is false)
+        {
+            return;
+        }
+
         _isRunning = false;
 
         if (_cancellationTokenSource is not null)
@@ -98,6 +102,10 @@ public class LoadBalancer : ILoadBalancer
             catch (OperationCanceledException)
             {
                 _log.Debug("Load balancer: Client acceptance loop stopped due to cancellation.");
+            }
+            catch (ObjectDisposedException)
+            {
+                _log.Debug("Listener disposed during stop");
             }
         }
 
@@ -201,5 +209,4 @@ public class LoadBalancer : ILoadBalancer
             }
         }
     }
-
 }

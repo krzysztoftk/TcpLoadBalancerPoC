@@ -11,7 +11,7 @@ public class Server : IServer
     private readonly ServerConfiguration _serverConfiguration;
     private readonly ITcpListener _tcpListener;
     private readonly IProtocolHandler _protocolHandler;
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
+    private CancellationTokenSource? _cancellationTokenSource;
     private bool _isRunning;
 
 
@@ -26,9 +26,24 @@ public class Server : IServer
 
     public async Task StartAsync()
     {
-        _tcpListener.Start();
-        _isRunning = true;
-        _log.Information("Server {ServerName} started listening on {Endpoint}", _serverConfiguration.Name, _tcpListener.LocalEndpoint);
+        if (_isRunning)
+        {
+            return;
+        }
+
+        try
+        {
+            _cancellationTokenSource = new CancellationTokenSource();
+
+            _tcpListener.Start();
+            _isRunning = true;
+            _log.Information("Server {ServerName} started listening on {Endpoint}", _serverConfiguration.Name, _tcpListener.LocalEndpoint);
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, "{ServerName} failed to start listener on {Endpoint}", _serverConfiguration.Name, _serverConfiguration.GetEndpoint());
+            return;
+        }
 
         while (_isRunning && _cancellationTokenSource.IsCancellationRequested is false)
         {
@@ -51,11 +66,20 @@ public class Server : IServer
 
     public Task StopAsync()
     {
+        if (_isRunning is false)
+        {
+            return Task.CompletedTask;
+        }
+
+        _isRunning = false;
+
         try
         {
-            _isRunning = false;
-            _cancellationTokenSource.Cancel();
+
+            _cancellationTokenSource?.Cancel();
             _tcpListener.Stop();
+
+            _log.Information("{ServerName}: Server stopped", _serverConfiguration.Name);
         }
         catch (Exception ex)
         {
@@ -64,7 +88,8 @@ public class Server : IServer
         }
         finally
         {
-            _cancellationTokenSource.Dispose();
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = null;
         }
 
         return Task.CompletedTask;

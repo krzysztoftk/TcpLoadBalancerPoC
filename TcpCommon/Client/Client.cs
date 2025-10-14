@@ -11,7 +11,7 @@ public class Client : IClient
     private readonly ClientConfiguration _clientConfiguration;
     private readonly ITcpClient _tcpClient;
     private readonly IProtocolHandler _protocolHandler;
-    private CancellationTokenSource _cancellationTokenSource;
+    private CancellationTokenSource? _cancellationTokenSource;
     private bool _isRunning;
 
 
@@ -48,10 +48,15 @@ public class Client : IClient
 
     public void Stop()
     {
+        if (_isRunning is false)
+        {
+            return;
+        }
+
         try
         {
             _isRunning = false;
-            _cancellationTokenSource.Cancel();
+            _cancellationTokenSource?.Cancel();
         }
         catch (Exception ex)
         {
@@ -59,7 +64,8 @@ public class Client : IClient
         }
         finally
         {
-            _cancellationTokenSource.Dispose();
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = null;
         }
 
     }
