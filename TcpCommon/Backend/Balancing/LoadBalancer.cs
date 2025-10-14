@@ -54,7 +54,6 @@ public class LoadBalancer : ILoadBalancer
             _tcpListener.Start();
             await _healthChecker.StartAsync(_cancellationTokenSource.Token);
             _log.Information("LoadBalancer listening on: {Endpoint}", _configuration.GetEndpoint());
-                        await _healthChecker.StartAsync(_cancellationTokenSource.Token);
             _acceptClientsTask = AcceptClientsAsync(_cancellationTokenSource.Token);
             await _acceptClientsTask;
         }
@@ -82,6 +81,8 @@ public class LoadBalancer : ILoadBalancer
         if (_cancellationTokenSource is not null)
         {
             await _cancellationTokenSource.CancelAsync();
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = null;
         }
 
         try
