@@ -1,0 +1,27 @@
+name: Build
+on:
+  pull_request:
+    branches: [ master, develop, release/*, hotfix/* ]
+    
+    jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Check out the repository code
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Step 2: Set up the .NET SDK
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x' # Specify the .NET version (e.g., 6.0.x, 7.0.x, 8.0.x)
+
+    # Step 3: Restore dependencies
+    - name: Restore dependencies
+      run: dotnet restore
+
+    # Step 4: Build the project
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
