@@ -11,16 +11,16 @@ public class Server : IServer
     private readonly ServerConfiguration _serverConfiguration;
     private readonly ITcpListener _tcpListener;
     private readonly IProtocolHandler _protocolHandler;
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private bool _isRunning;
 
 
     public Server(
         ServerConfiguration serverConfiguration, 
-        IProtocolHandler protocolHandler,
-        ITcpListener tcpListener)
+        IProtocolHandler protocolHandler)
     {
         _serverConfiguration = serverConfiguration;
-        _tcpListener = tcpListener;
+        _tcpListener = new TcpListenerWrapper(_serverConfiguration.GetEndpoint());
         _protocolHandler = protocolHandler;
     }
 
@@ -30,13 +30,17 @@ public class Server : IServer
         _isRunning = true;
         _log.Information("Server {ServerName} started listening on {Endpoint}", _serverConfiguration.Name, _tcpListener.LocalEndpoint);
 
-        while (_isRunning)
+        while (_isRunning && _cancellationTokenSource.IsCancellationRequested is false)
         {
             try
             {
-                ITcpClient client = await _tcpListener.AcceptTcpClientAsync(default); //todo: use CancelationTokenSource
+                ITcpClient client = await _tcpListener.AcceptTcpClientAsync(_cancellationTokenSource.Token); 
                 _log.Information($"Client connected: {client.Client.RemoteEndPoint}");
                 _ = Task.Run(() => HandleClient(client));
+            }
+            catch (OperationCanceledException)
+            {
+                _log.Information("{ServerName}: Server stopping, accept loop cancelled", _serverConfiguration.Name);
             }
             catch (Exception ex)
             {
@@ -47,9 +51,23 @@ public class Server : IServer
 
     public Task StopAsync()
     {
-        _isRunning = false;
-        _tcpListener.Stop();
-        return Task.CompletedTask; //todo
+        try
+        {
+            _isRunning = false;
+            _cancellationTokenSource.Cancel();
+            _tcpListener.Stop();
+        }
+        catch (Exception ex)
+        {
+            _log.Error("{ServerName}: Error stopping server: {ExceptionMessage}", _serverConfiguration.Name,
+                ex.Message);
+        }
+        finally
+        {
+            _cancellationTokenSource.Dispose();
+        }
+
+        return Task.CompletedTask;
     }
 
     private async Task HandleClient(ITcpClient client)
@@ -93,6 +111,5 @@ public class Server : IServer
         {
             _log.Information("{ServerName} heartbeat loop cancelled for {ClientEndpoint}", _serverConfiguration.Name, remoteEndPoint);
         }
-
     }
 }

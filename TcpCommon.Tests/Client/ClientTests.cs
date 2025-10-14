@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace TcpCommon.Tests.Client;
 
-namespace TcpCommon.Tests.Client
+internal class ClientTests
 {
-    internal class ClientTests
+    private TcpCommon.Client.Client _client;
+
+    [Test]
+    public void Test1()
     {
+        
+        _client.Stop();
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Serilog;
+using TcpCommon.Backend;
 using TcpCommon.Backend.ProtocolHandling;
 using TcpCommon.Wrappers;
 
@@ -27,13 +28,13 @@ public class Client : IClient
         {
             _cancellationTokenSource = new CancellationTokenSource();
             await _tcpClient.ConnectAsync(_clientConfiguration.GetBackendEndpoint(), _cancellationTokenSource.Token);
-            _log.Information($"{_clientConfiguration.Name} connected to: {_clientConfiguration.GetBackendEndpoint()}");
+            _log.Information("{ClientName} connected to: {BackendEndpoint}", _clientConfiguration.Name, _clientConfiguration.GetBackendEndpoint());
             _isRunning = true;
             _ = Task.Run(ReceiveMessagesAsync);
         }
         catch (Exception exception)
         {
-            _log.Error($"{_clientConfiguration.Name} connection to server failed: {exception.Message}");
+            _log.Error("{ClientName} connection to server failed: {ExceptionMessage}", _clientConfiguration.Name, exception.Message);
             _isRunning = false;
             throw;
         }
@@ -47,9 +48,20 @@ public class Client : IClient
 
     public void Stop()
     {
-        _isRunning = false;
-        _cancellationTokenSource.Cancel();
-        _cancellationTokenSource.Dispose();
+        try
+        {
+            _isRunning = false;
+            _cancellationTokenSource.Cancel();
+        }
+        catch (Exception ex)
+        {
+            _log.Error("Error stopping client {ClientName}: {ExceptionMessage}", _clientConfiguration.Name, ex.Message);
+        }
+        finally
+        {
+            _cancellationTokenSource.Dispose();
+        }
+
     }
 
     private async Task ReceiveMessagesAsync()

@@ -1,5 +1,4 @@
 ﻿using Serilog;
-using Serilog.Core;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
@@ -24,14 +23,15 @@ public class LoadBalancer : ILoadBalancer
 
     public LoadBalancer(
         IBalancingStrategy balancingStrategy,
-        ServerConfiguration configuration,
-        ITcpListener tcpTcpListener,
+        ServerConfiguration configuration, 
+        IProtocolHandler protocolHandler, 
         IHealthChecker? healthChecker = null,
         IDataForwarder? dataForwarder = null)
     {
         _balancingStrategy = balancingStrategy;
         _configuration = configuration;
-        _tcpListener = tcpTcpListener;
+        _tcpListener = new TcpListenerWrapper(_configuration.GetEndpoint());
+        _protocolHandler = protocolHandler;
         _healthChecker = healthChecker ?? new HealthChecker();
         _dataForwarder = dataForwarder ?? new SimpleDataForwarder();
     }

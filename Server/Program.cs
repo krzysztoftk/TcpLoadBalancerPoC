@@ -12,7 +12,7 @@ ServerConfiguration configuration1 = new()
     Port = 4001
 };
 
-IServer server1 = new Server(configuration1, new NewlineDelimitedProtocolHandler(), new TcpListenerWrapper(configuration1.GetEndpoint()));
+IServer server1 = new Server(configuration1, new NewlineDelimitedProtocolHandler());
 
 
 ServerConfiguration configuration2 = new()
@@ -22,7 +22,7 @@ ServerConfiguration configuration2 = new()
     Port = 4002
 };
 
-IServer server2 = new Server(configuration2, new NewlineDelimitedProtocolHandler(), new TcpListenerWrapper(configuration2.GetEndpoint()));
+IServer server2 = new Server(configuration2, new NewlineDelimitedProtocolHandler());
 
 // Start each server on its own background task
 _ = Task.Run(() => server1.StartAsync());

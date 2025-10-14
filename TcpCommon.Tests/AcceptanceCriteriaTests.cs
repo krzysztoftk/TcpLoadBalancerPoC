@@ -1,6 +1,7 @@
 using System.Net;
 using TcpCommon.Backend;
 using TcpCommon.Backend.Balancing;
+using TcpCommon.Backend.ProtocolHandling;
 using TcpCommon.Wrappers;
 
 namespace TcpCommon.Tests;
@@ -32,7 +33,7 @@ public class Tests
         _loadBalancer = new(
             new RoundRobinStrategy(),
             balancerConfiguration,
-            new TcpListenerWrapper(balancerConfiguration.GetEndpoint()));
+            new NewlineDelimitedProtocolHandler());
 
         foreach (FakeServer fakeServer in _servers)
         {
