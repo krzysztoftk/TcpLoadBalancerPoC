@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using Serilog;
 using TcpCommon.Wrappers;
 
@@ -9,7 +10,9 @@ public class NewlineDelimitedProtocolHandler : IProtocolHandler
     private readonly ILogger _log = Log.ForContext<NewlineDelimitedProtocolHandler>();
     private const int BufferSize = 8192;
 
-    public async Task HandleReceiveAsync(INetworkStream sourceStream, CancellationToken cancellationToken)
+    public async Task<string?> HandleReceiveAsync(
+        INetworkStream sourceStream,
+        CancellationToken cancellationToken)
     {
         byte[] buffer = new byte[BufferSize];
         MemoryStream messageBuffer = new();
@@ -30,6 +33,8 @@ public class NewlineDelimitedProtocolHandler : IProtocolHandler
                 _log.Information($"Received message: {message}");
 
                 messageBuffer.SetLength(0);
+
+                return message;
             }
         }
         catch (OperationCanceledException)
@@ -52,6 +57,8 @@ public class NewlineDelimitedProtocolHandler : IProtocolHandler
         {
             await messageBuffer.DisposeAsync();
         }
+
+        return null;
     }
 
     public async Task HandleSendAsync(string messageToSend, INetworkStream destinationStream, CancellationToken cancellationToken)
@@ -84,5 +91,6 @@ public class NewlineDelimitedProtocolHandler : IProtocolHandler
         }
     }
 
-    private bool CheckForCompleteMessage(byte[] buffer, int bytesRead) => buffer[bytesRead - 1] == '\n';
+    private static bool CheckForCompleteMessage(byte[] buffer, int bytesRead)
+        => buffer[bytesRead - 1] == '\n';
 }
