@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using TcpCommon.Backend.Balancing;
 
-namespace TcpCommon.Tests.Balancing;
+namespace TcpCommon.Tests.Backend.Balancing;
 
 public class RoundRobinTests
 {

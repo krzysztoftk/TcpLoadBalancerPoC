@@ -2,7 +2,6 @@ using System.Net;
 using TcpCommon.Backend;
 using TcpCommon.Backend.Balancing;
 using TcpCommon.ProtocolHandling;
-using TcpCommon.Wrappers;
 
 namespace TcpCommon.Tests;
 
