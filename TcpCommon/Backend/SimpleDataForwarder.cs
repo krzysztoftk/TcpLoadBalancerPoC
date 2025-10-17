@@ -3,11 +3,6 @@ using TcpCommon.Wrappers;
 
 namespace TcpCommon.Backend;
 
-public interface IDataForwarder
-{
-    Task ForwardAsync(INetworkStream source, INetworkStream destination, CancellationToken cancellationToken);
-}
-
 public class SimpleDataForwarder : IDataForwarder
 {
     private readonly ILogger _log = Log.ForContext<SimpleDataForwarder>();

@@ -1,4 +1,5 @@
-﻿using TcpCommon.Wrappers;
+﻿using System.Reflection;
+using TcpCommon.Wrappers;
 
 namespace TcpCommon.Tests.ProtocolHandling;
 
@@ -19,6 +20,8 @@ internal class MemoryNetworkStream : INetworkStream
 
     public async Task FlushAsync(CancellationToken token)
         => await _stream.FlushAsync(token);
+
+    public byte[] ToArray() => _stream.ToArray();
 
     public void Dispose() => _stream.Dispose();
 }
