@@ -2,7 +2,7 @@
 
 namespace TcpCommon.Tests.ProtocolHandling;
 
-public class MemoryNetworkStream : INetworkStream
+internal class MemoryNetworkStream : INetworkStream
 {
     private readonly MemoryStream _stream;
 
