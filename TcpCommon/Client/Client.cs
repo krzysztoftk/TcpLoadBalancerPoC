@@ -1,6 +1,5 @@
 ﻿using Serilog;
-using TcpCommon.Backend;
-using TcpCommon.Backend.ProtocolHandling;
+using TcpCommon.ProtocolHandling;
 using TcpCommon.Wrappers;
 
 namespace TcpCommon.Client;

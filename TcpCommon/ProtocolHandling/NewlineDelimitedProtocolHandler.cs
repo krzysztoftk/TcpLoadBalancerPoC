@@ -1,9 +1,8 @@
-﻿using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System.Text;
 using Serilog;
 using TcpCommon.Wrappers;
 
-namespace TcpCommon.Backend.ProtocolHandling;
+namespace TcpCommon.ProtocolHandling;
 
 public class NewlineDelimitedProtocolHandler : IProtocolHandler
 {

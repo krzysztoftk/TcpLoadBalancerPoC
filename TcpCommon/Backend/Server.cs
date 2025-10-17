@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using Serilog;
-using TcpCommon.Backend.ProtocolHandling;
+using TcpCommon.ProtocolHandling;
 using TcpCommon.Wrappers;
 
 namespace TcpCommon.Backend;

@@ -1,6 +1,6 @@
 ﻿using TcpCommon.Wrappers;
 
-namespace TcpCommon.Backend.ProtocolHandling;
+namespace TcpCommon.ProtocolHandling;
 
 public interface IProtocolHandler
 {

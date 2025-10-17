@@ -1,8 +1,8 @@
 ﻿using System.Net;
 using TcpCommon.Backend;
 using TcpCommon.Backend.Balancing;
-using TcpCommon.Backend.ProtocolHandling;
 using TcpCommon.Infrastructure;
+using TcpCommon.ProtocolHandling;
 
 Logging.Configure();
 

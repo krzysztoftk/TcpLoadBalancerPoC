@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using TcpCommon.Backend.ProtocolHandling;
+using TcpCommon.ProtocolHandling;
 using TcpCommon.Wrappers;
 
 namespace TcpCommon.Backend.Balancing;
