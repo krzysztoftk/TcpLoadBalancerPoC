@@ -24,11 +24,28 @@ ServerConfiguration configuration2 = new()
 
 IServer server2 = new Server(configuration2, new NewlineDelimitedProtocolHandler());
 
+ServerConfiguration configuration3 = new()
+{
+    IP = "127.0.0.1",
+    Name = "Server 3",
+    Port = 4003
+};
+
+IServer server3 = new Server(configuration3, new NewlineDelimitedProtocolHandler());
+
 // Start each server on its own background task
 _ = Task.Run(() => server1.StartAsync());
 _ = Task.Run(() => server2.StartAsync());
+_ = Task.Run(() => server3.StartAsync());
 
 Console.WriteLine("Both servers started. Press any key to stop...");
+
+//_ = Task.Run(() =>
+//{
+//    Task.Delay(TimeSpan.FromSeconds(60));
+//    return server2.StopAsync();
+//});
+
 Console.ReadKey();
 
 await server1.StopAsync();

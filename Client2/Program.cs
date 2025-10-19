@@ -7,7 +7,7 @@ Logging.Configure();
 
 Console.WriteLine("Client 2");
 
-Thread.Sleep(1000);
+await Task.Delay(1000);
 
 ClientConfiguration clientConfiguration = new()
 {
@@ -25,14 +25,21 @@ Task.Run(() =>
 
 await Task.Delay(1000);
 
-await client.SendMessageAsync("Message F1");
-await client.SendMessageAsync("Message F2");
-await client.SendMessageAsync("Message F3");
+await client.SendMessageAsync($"{clientConfiguration.Name}: Message F1");
+await client.SendMessageAsync($"{clientConfiguration.Name}: Message F2");
+await client.SendMessageAsync($"{clientConfiguration.Name}: Message F3");
 
-while (true)
+Console.WriteLine("Press any key to stop sending messages...");
+
+while (!Console.KeyAvailable)
 {
-    await client.SendMessageAsync($"Message F + {Guid.NewGuid()}");
+    await client.SendMessageAsync($"{clientConfiguration.Name}: Message F + {Guid.NewGuid()}");
+    await Task.Delay(TimeSpan.FromSeconds(1));
 }
 
+Console.WriteLine("Key pressed. Stopping message loop.");
 
-Console.ReadKey();
+while (Console.KeyAvailable)
+{
+    Console.ReadKey();
+}
