@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using TcpCommon.Wrappers;
+﻿using TcpCommon.Wrappers;
 
 namespace TcpCommon.Tests.ProtocolHandling;
 
