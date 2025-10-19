@@ -74,6 +74,42 @@ public class LoadBalancerTests
         Assert.That(hits.Values.Sum(), Is.EqualTo(clientCount), "All clients should receive responses successfully");
     }
 
+    [Test]
+    public async Task CanBalanceTrafficAcrossMultipleBackendServices()
+    {
+        int backendCount = 3;
+        for (int i = 0; i < backendCount; i++)
+        {
+            int port = BackendServerPortBase + i;
+            TestServer server = new TestServer(port, $"Backend{i}");
+            await server.StartAsync();
+            _backendServers.Add(server);
+            _loadBalancer.AddEndpoint(new IPEndPoint(IPAddress.Loopback, port));
+        }
+
+        Task.Run(() => _loadBalancer.StartAsync());
+        await Task.Delay(200);
+
+        int requestCount = 9;
+        ConcurrentDictionary<int, int> serverHits = new ConcurrentDictionary<int, int>();
+
+        List<Task> clientTasks = new List<Task>();
+
+        for (int i = 0; i < requestCount; i++)
+        {
+            int requestId = i;
+            clientTasks.Add(RunClientAsync(requestId, serverHits));
+        }
+
+        await Task.WhenAll(clientTasks);
+        await _loadBalancer.StopAsync();
+
+        Assert.That(serverHits.Count, Is.EqualTo(backendCount), "Requests should be distributed across all backends");
+        int maxHits = serverHits.Values.Max();
+        int minHits = serverHits.Values.Min();
+        Assert.That(maxHits - minHits, Is.LessThanOrEqualTo(1), "Load distribution should be roughly even");
+    }
+
     private int ExtractBackendIndex(string response)
     {
         Match match = Regex.Match(response, @"Backend(\d+)");
