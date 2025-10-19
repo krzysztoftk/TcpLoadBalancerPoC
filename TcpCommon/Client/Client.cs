@@ -13,6 +13,8 @@ public class Client : IClient
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _isRunning;
 
+    public event Action<string>? MessageReceived;
+
 
     public Client(ClientConfiguration clientConfiguration, IProtocolHandler protocolHandler, ITcpClient tcpClient)
     {
@@ -75,7 +77,11 @@ public class Client : IClient
         {
             while (_isRunning)
             {
-                await _protocolHandler.HandleReceiveAsync(_tcpClient.GetStream(), _cancellationTokenSource.Token);
+                string? message = await _protocolHandler.HandleReceiveAsync(_tcpClient.GetStream(), _cancellationTokenSource?.Token ?? default);
+                if (message is not null)
+                {
+                    MessageReceived?.Invoke(message);
+                }
             }
         }
         finally
