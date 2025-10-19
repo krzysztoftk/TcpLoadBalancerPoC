@@ -19,6 +19,7 @@ public class NewlineDelimitedProtocolHandler : IProtocolHandler
         try
         {
             int bytesRead;
+            string message = null;
             while ((bytesRead = await sourceStream.ReadAsync(buffer, 0, BufferSize, cancellationToken)) > 0)
             {
                 messageBuffer.Write(buffer, 0, bytesRead);
@@ -28,13 +29,13 @@ public class NewlineDelimitedProtocolHandler : IProtocolHandler
                     continue;
                 }
 
-                string message = Encoding.UTF8.GetString(messageBuffer.ToArray()).Trim();
+                message = Encoding.UTF8.GetString(messageBuffer.ToArray()).Trim();
                 _log.Information($"Received message: {message}");
 
                 messageBuffer.SetLength(0);
-
-                return message;
             }
+
+            return message;
         }
         catch (OperationCanceledException)
         {
