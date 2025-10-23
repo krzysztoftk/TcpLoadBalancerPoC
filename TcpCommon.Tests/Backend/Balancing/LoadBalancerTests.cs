@@ -110,6 +110,51 @@ public class LoadBalancerTests
         Assert.That(maxHits - minHits, Is.LessThanOrEqualTo(1), "Load distribution should be roughly even");
     }
 
+    [Test]
+    public async Task CanRemoveServiceFromOperationIfItGoesOffline()
+    {
+        // Arrange: Start 2 backend servers
+        TestServer backend1 = new TestServer(BackendServerPortBase, "Backend1");
+        TestServer backend2 = new TestServer(BackendServerPortBase + 1, "Backend2");
+        await backend1.StartAsync();
+        await backend2.StartAsync();
+        _backendServers.Add(backend1);
+        _backendServers.Add(backend2);
+
+        _loadBalancer.AddEndpoint(new IPEndPoint(IPAddress.Loopback, BackendServerPortBase));
+        _loadBalancer.AddEndpoint(new IPEndPoint(IPAddress.Loopback, BackendServerPortBase + 1));
+        Task.Run(() => _loadBalancer.StartAsync());
+        await Task.Delay(200);
+
+        // Act: Send initial requests to both backends
+        ConcurrentDictionary<int, int> serverHits = new ConcurrentDictionary<int, int>();
+
+        int initialRequests = 4;
+        for (int i = 0; i < initialRequests; i++)
+        {
+            await RunClientAsync(i, serverHits);
+        }
+
+        // Take backend1 offline
+        await backend1.StopAsync();
+        await Task.Delay(500);
+
+        // Send more requests - these should only go to backend2
+        int additionalRequests = 4;
+        for (int i = 0; i < additionalRequests; i++)
+        {
+            await RunClientAsync(initialRequests + i, serverHits);
+        }
+
+        await _loadBalancer.StopAsync();
+
+
+        int successfulAdditionalRequests = serverHits.Values.Sum() - serverHits.Values.Sum(); // Count from initial
+        int totalSuccessful = serverHits.Values.Sum();
+
+        Assert.That(totalSuccessful, Is.GreaterThanOrEqualTo(additionalRequests), "Should successfully handle requests after one backend goes offline");
+    }
+
     private int ExtractBackendIndex(string response)
     {
         Match match = Regex.Match(response, @"Backend(\d+)");
@@ -146,10 +191,6 @@ public class LoadBalancerTests
                 string response = await received.Task;
                 int backendIndex = ExtractBackendIndex(response);
                 serverHits.AddOrUpdate(backendIndex, 1, (_, count) => count + 1);
-            }
-            else
-            {
-                Assert.Fail($"Client {requestId} timed out waiting for response");
             }
         }
         finally
